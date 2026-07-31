@@ -25,48 +25,48 @@
 <input id="search" type="text" placeholder="🔍 Search Artist or Title..." class="w-full max-w-3xl mx-auto block p-3 mb-6 rounded-lg bg-gray-900 border-gray-700">
 
 <div id="chart" class="max-w-3xl mx-auto space-y-3">
-  <p class="text-center text-gray-500">Loading data from Google Sheet...</p>
+  <p class="text-center text-gray-500">Loading data...</p>
 </div>
 <p id="lastUpdate" class="text-center text-xs text-gray-500 mt-6"></p>
 
 <script>
-// UDAH AKU TAMBAHIN &gid=1352500872
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
 
 let allData = [];
 
-function getVal(row, keys) {
-  for(let k of keys) {
-    if(row[k]!== undefined && row[k]!== '') return row[k];
+function loadChart() {
+  // Bikin tag script biar ga kena CORS
+  const script = document.createElement('script');
+  script.src = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_URL) + '&_=' + Date.now();
+  script.onload = () => {
+    document.getElementById('chart').innerHTML = '<p class="text-center text-gray-500">Data loaded, rendering...</p>';
   }
-  return '';
+  script.onerror = () => {
+    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal load data dari Google</p>';
+  }
+  document.body.appendChild(script);
 }
 
-async function loadChart() {
-  try {
-    const res = await fetch(SHEET_CSV_URL + '&_=' + Date.now());
-    const csvText = await res.text();
-    const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+// Fungsi ini dipanggil sama allorigins setelah data masuk
+function handleData(csvText) {
+  const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 
-    allData = data.map(row => ({
-      artistTitle: getVal(row, ['Artist - Title']),
-      pba: Number(getVal(row, ['PBA'])) || 0,
-      dnu: Number(getVal(row, ['DNU'])) || 0,
-      score: Number(getVal(row, ['SCORE'])) || 0
-    })).filter(item => item.artistTitle && item.score > 0)
- .sort((a,b) => b.score - a.score);
+  allData = data.map(row => ({
+    artistTitle: row['Artist - Title'] || '',
+    pba: Number(row['PBA']) || 0,
+    dnu: Number(row['DNU']) || 0,
+    score: Number(row['SCORE']) || 0
+  })).filter(item => item.artistTitle && item.score > 0)
+.sort((a,b) => b.score - a.score);
 
-    renderChart(allData);
-    document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
-  } catch (error) {
-    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data</p>';
-  }
+  renderChart(allData);
+  document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
 }
 
 function renderChart(data) {
   const chartDiv = document.getElementById('chart');
   chartDiv.innerHTML = '';
-  data.forEach((item, i) => {
+  data.slice(0,100).forEach((item, i) => {
     const rank = i + 1;
     const rankClass = rank === 1? `rank-1` : rank === 2? `rank-2` : rank === 3? `rank-3` : 'bg-gray-900 border border-gray-800';
     const pbaIcon = item.pba > 0? `<span class="up">▲${item.pba}</span>` : item.pba < 0? `<span class="down">▼${Math.abs(item.pba)}</span>` : `-`;
@@ -74,3 +74,6 @@ function renderChart(data) {
     chartDiv.innerHTML += `
       <div class="flex items-center gap-4 p-4 rounded-xl ${rankClass} shadow-lg">
         <div class="text-3xl font-extrabold w-[70px] text-center">#${rank}</div>
+        <div class="flex-1">
+          <p class="font-semibold text-lg truncate">${item.artistTitle}</p>
+          <p class="text-xs opacity-80">PBA: ${pbaIcon} | DNU:
