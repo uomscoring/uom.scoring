@@ -1,79 +1,58 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Universe of Music - Live Chart</title>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/paparse@5.4.1/paparse.min.js"></script>
-<style>
-  body { background: #0a0a0a; color: white; font-family: 'Prompt', sans-serif; }
-  h1 { font-family: 'Anton', sans-serif; letter-spacing: 2px; }
-.rank-1 { background: linear-gradient(90deg, #FF0088, #D800FF); color: black; font-weight: 700; }
-.rank-2 { background: linear-gradient(90deg, #15FF00, #A9FF00); color: black; font-weight: 700; }
-.rank-3 { background: linear-gradient(90deg, #CD7F32, #A0522D); color: white; font-weight: 700; }
-.up { color: #4ade80; font-weight: 700; }
-.down { color: #f87171; font-weight: 700; }
-</style>
-</head>
-<body class="p-4 md:p-8">
-
-<h1 class="text-4xl md:text-5xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">LIVE TOP 100</h1>
-<p class="text-center text-gray-400 mb-6">Universe of Music Top Global Chart</p>
-
-<input id="search" type="text" placeholder="🔍 Search Artist or Title..." class="w-full max-w-3xl mx-auto block p-3 mb-6 rounded-lg bg-gray-900 border-gray-700">
-
-<div id="chart" class="max-w-3xl mx-auto space-y-3">
-  <p class="text-center text-gray-500">Loading data...</p>
-</div>
-<p id="lastUpdate" class="text-center text-xs text-gray-500 mt-6"></p>
-
 <script>
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
 
-let allData = [];
+    async function fetchData() {
+        document.getElementById('status').textContent = 'Mengambil data dari Google Sheet...';
 
-function loadChart() {
-  // Bikin tag script biar ga kena CORS
-  const script = document.createElement('script');
-  script.src = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_URL) + '&_=' + Date.now();
-  script.onload = () => {
-    document.getElementById('chart').innerHTML = '<p class="text-center text-gray-500">Data loaded, rendering...</p>';
-  }
-  script.onerror = () => {
-    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal load data dari Google</p>';
-  }
-  document.body.appendChild(script);
-}
+        try {
+            // LANGSUNG FETCH CSV, GA PAKE PROXY LAGI
+            const response = await fetch(SHEET_URL);
+            if (!response.ok) throw new Error('Gagal fetch: ' + response.status);
 
-// Fungsi ini dipanggil sama allorigins setelah data masuk
-function handleData(csvText) {
-  const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+            const csvText = await response.text();
+            const rows = csvText.split('\n').map(row => row.split(','));
 
-  allData = data.map(row => ({
-    artistTitle: row['Artist - Title'] || '',
-    pba: Number(row['PBA']) || 0,
-    dnu: Number(row['DNU']) || 0,
-    score: Number(row['SCORE']) || 0
-  })).filter(item => item.artistTitle && item.score > 0)
-.sort((a,b) => b.score - a.score);
+            const headers = rows[0].map(h => h.trim());
+            const data = rows.slice(1).map(row => {
+                let obj = {};
+                headers.forEach((header, i) => {
+                    obj[header] = row[i]? row[i].trim() : '';
+                });
+                return obj;
+            }).filter(row => row['NAMA']); // filter baris kosong
 
-  renderChart(allData);
-  document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
-}
+            document.getElementById('status').textContent = `Data berhasil dimuat: ${data.length} tim`;
+            renderChart(data);
 
-function renderChart(data) {
-  const chartDiv = document.getElementById('chart');
-  chartDiv.innerHTML = '';
-  data.slice(0,100).forEach((item, i) => {
-    const rank = i + 1;
-    const rankClass = rank === 1? `rank-1` : rank === 2? `rank-2` : rank === 3? `rank-3` : 'bg-gray-900 border border-gray-800';
-    const pbaIcon = item.pba > 0? `<span class="up">▲${item.pba}</span>` : item.pba < 0? `<span class="down">▼${Math.abs(item.pba)}</span>` : `-`;
-    const dnuIcon = item.dnu > 0? `<span class="up">+${item.dnu}</span>` : item.dnu < 0? `<span class="down">${item.dnu}</span>` : `-`;
-    chartDiv.innerHTML += `
-      <div class="flex items-center gap-4 p-4 rounded-xl ${rankClass} shadow-lg">
-        <div class="text-3xl font-extrabold w-[70px] text-center">#${rank}</div>
-        <div class="flex-1">
-          <p class="font-semibold text-lg truncate">${item.artistTitle}</p>
-          <p class="text-xs opacity-80">PBA: ${pbaIcon} | DNU:
+        } catch (error) {
+            document.getElementById('status').textContent = 'GAGAL: ' + error.message;
+            console.error(error);
+        }
+    }
+
+    function renderChart(data) {
+        // sort by SKOR tertinggi
+        data.sort((a, b) => parseFloat(b.SKOR) - parseFloat(a.SKOR));
+        const top100 = data.slice(0, 100);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top100.map(r => r.NAMA),
+                datasets: [{
+                    label: 'SKOR',
+                    data: top100.map(r => parseFloat(r.SKOR)),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                }]
+            },
+            options: {
+                indexAxis: 'y', // biar horizontal
+                responsive: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    fetchData();
+</script>
