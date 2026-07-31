@@ -6,7 +6,7 @@
 <title>Universe of Music</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/paparse@5.4.1/paparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/paparse@5.4.1/papaparse.min.js"></script>
 <style>
   body { background: #0a0a0a; color: white; font-family: 'Prompt', sans-serif; }
   h1 { font-family: 'Anton', sans-serif; letter-spacing: 2px; }
@@ -35,6 +35,7 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf
 let allData = [];
 
 async function loadChart() {
+  document.getElementById('chart').innerHTML = '<p class="text-center text-gray-500">Loading data...</p>';
   try {
     const res = await fetch(SHEET_CSV_URL + '&_=' + Date.now());
     const csvText = await res.text();
@@ -52,7 +53,8 @@ async function loadChart() {
     renderChart(allData);
     document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
   } catch (error) {
-    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data.</p>';
+    console.error(error);
+    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data. Cek koneksi/Sheet</p>';
   }
 }
 
@@ -65,8 +67,8 @@ function renderChart(data) {
     const pbaIcon = item.pba > 0? `<span class="up">▲${item.pba}</span>` : item.pba < 0? `<span class="down">▼${Math.abs(item.pba)}</span>` : `-`;
     const dnuIcon = item.dnu > 0? `<span class="up">+${item.dnu}</span>` : item.dnu < 0? `<span class="down">${item.dnu}</span>` : `-`;
     chartDiv.innerHTML += `
-      <div class="flex items-center gap-4 p-4 rounded-lg ${rankClass} shadow-lg">
-        <div class="text-3xl font-extrabold w-[70px] text-center">#${rank}</div>
+      <div class="flex items-center gap-4 p-4 rounded-lg ${rankClass} shadow-lg transition hover:scale-[1.01]">
+        <div class="text-3xl font-extrabold w-[70px] flex-shrink-0 text-center">#${rank}</div>
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-base md:text-lg truncate">${item.artistTitle}</p>
           <p class="text-xs opacity-80 mt-1">PBA: ${pbaIcon} | DNU: ${dnuIcon} | SCORE: ${item.score.toLocaleString('id-ID')}</p>
@@ -83,7 +85,7 @@ document.getElementById('search').addEventListener('input', (e) => {
 });
 
 loadChart();
-setInterval(loadChart, 300000);
+setInterval(loadChart, 300000); // auto refresh 5 menit
 </script>
 </body>
 </html>
