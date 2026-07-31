@@ -8,8 +8,8 @@
     <style>
         body { font-family: Arial, sans-serif; background: #0f172a; color: white; padding: 20px; }
         h1 { text-align: center; color: #38bdf8; }
-        #status { text-align: center; margin: 20px; }
-        canvas { background: #1e293b; border-radius: 10px; padding: 10px; height: 2000px!important; }
+        #status { text-align: center; margin: 20px; font-size: 18px; }
+        canvas { background: #1e293b; border-radius: 10px; padding: 10px; height: 3000px!important; }
     </style>
 </head>
 <body>
@@ -20,7 +20,6 @@
     <script>
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
 
-        // Fungsi buat baca CSV yg bener, walau ada koma di dalam ""
         function parseCSV(text) {
             const rows = [];
             let row = [], cell = '', inQuotes = false;
@@ -49,36 +48,16 @@
                         obj[header] = row[i]? row[i].trim() : '';
                     });
                     return obj;
-                }).filter(row => row.NAMA && row.SKOR && row.SKOR!== 'SKOR');
+                }).filter(row => row['ARTISTS - TITLE'] && row.FINAL);
 
-                document.getElementById('status').textContent = `Data berhasil: ${data.length} tim ditemukan`;
+                document.getElementById('status').textContent = `Data berhasil: ${data.length} lagu ditemukan`;
 
-                data.sort((a, b) => parseFloat(b.SKOR) - parseFloat(a.SKOR));
+                // SORT BERDASARKAN KOLOM FINAL
+                data.sort((a, b) => parseFloat(b.FINAL) - parseFloat(a.FINAL));
                 const top100 = data.slice(0, 100);
 
                 new Chart(document.getElementById('myChart'), {
                     type: 'bar',
                     data: {
-                        labels: top100.map(r => r.NAMA),
+                        labels: top100.map(r => r['ARTISTS - TITLE']),
                         datasets: [{
-                            label: 'SKOR',
-                            data: top100.map(r => parseFloat(r.SKOR)),
-                            backgroundColor: '#38bdf8'
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } }
-                    }
-                });
-
-            } catch (error) {
-                document.getElementById('status').textContent = 'ERROR: ' + error.message;
-            }
-        }
-        fetchData();
-    </script>
-</body>
-</html>
