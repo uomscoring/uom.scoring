@@ -6,6 +6,7 @@
 <title>Universe of Music</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/paparse@5.4.1/paparse.min.js"></script>
 <style>
   body { background: #0a0a0a; color: white; font-family: 'Prompt', sans-serif; }
   h1 { font-family: 'Anton', sans-serif; letter-spacing: 2px; }
@@ -29,40 +30,43 @@
 <p id="lastUpdate" class="text-center text-xs text-gray-500 mt-6"></p>
 
 <script>
-const API_URL = '/api/chart'; 
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
 
 let allData = [];
 
 async function loadChart() {
   try {
-    const res = await fetch(API_URL + '?_=' + Date.now());
-    if (!res.ok) throw new Error('Gagal fetch data');
-    const data = await res.json();
+    const res = await fetch(SHEET_CSV_URL + '&_=' + Date.now());
+    const csvText = await res.text();
+    
+    const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 
-    allData = data.filter(item => item.artistTitle && item.score > 0)
+    allData = data.map(row => ({
+      artistTitle: row['Artist - Title'] || '',
+      pba: Number(row['PBA']) || 0,
+      dnu: Number(row['DNU']) || 0,
+      score: Number(row['SCORE']) || 0
+    })).filter(item => item.artistTitle && item.score > 0)
      .sort((a,b) => b.score - a.score);
 
     renderChart(allData);
     document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
   } catch (error) {
-    console.error("Gagal load data:", error);
-    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data. Cek API / Google Sheet.</p>';
+    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data.</p>';
   }
 }
 
 function renderChart(data) {
   const chartDiv = document.getElementById('chart');
   chartDiv.innerHTML = '';
-
   data.forEach((item, i) => {
     const rank = i + 1;
     const rankClass = rank === 1? `rank-1` : rank === 2? `rank-2` : rank === 3? `rank-3` : 'bg-gray-800';
     const pbaIcon = item.pba > 0? `<span class="up">▲${item.pba}</span>` : item.pba < 0? `<span class="down">▼${Math.abs(item.pba)}</span>` : `-`;
     const dnuIcon = item.dnu > 0? `<span class="up">+${item.dnu}</span>` : item.dnu < 0? `<span class="down">${item.dnu}</span>` : `-`;
-
     chartDiv.innerHTML += `
-      <div class="flex items-center gap-4 p-4 rounded-lg ${rankClass} shadow-lg transition hover:scale-[1.01]">
-        <div class="text-3xl font-extrabold w-[70px] flex-shrink-0 text-center">#${rank}</div>
+      <div class="flex items-center gap-4 p-4 rounded-lg ${rankClass} shadow-lg">
+        <div class="text-3xl font-extrabold w-[70px] text-center">#${rank}</div>
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-base md:text-lg truncate">${item.artistTitle}</p>
           <p class="text-xs opacity-80 mt-1">PBA: ${pbaIcon} | DNU: ${dnuIcon} | SCORE: ${item.score.toLocaleString('id-ID')}</p>
@@ -79,8 +83,7 @@ document.getElementById('search').addEventListener('input', (e) => {
 });
 
 loadChart();
-setInterval(loadChart, 300000); // auto refresh tiap 5 menit
+setInterval(loadChart, 300000);
 </script>
-
 </body>
 </html>
