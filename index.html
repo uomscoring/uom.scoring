@@ -14,89 +14,9 @@
   .rank-3 { background: linear-gradient(90deg, #CD7F32, #A0522D); color: white; }
   .up { color: #4ade80; font-weight: 700; }
   .down { color: #f87171; font-weight: 700; }
-  
-  /* FIX: Biar nomor ga numpuk */
-  .chart-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .rank-number {
-    font-size: 1.75rem; /* 28px */
-    font-weight: 800;
-    min-width: 60px; /* Kasih ruang buat #100 */
-    text-align: center;
-    flex-shrink: 0;
-  }
 </style>
 </head>
 <body class="p-4 md:p-8">
 
 <h1 class="text-4xl md:text-5xl font-bold text-center mb-2">LIVE TOP 100</h1>
-<p class="text-center text-gray-400 mb-4">Universe of Music Top Global Chart</p>
-
-<input id="search" type="text" placeholder="Search Artist or Title..." class="w-full max-w-3xl mx-auto block p-3 mb-6 rounded-lg bg-gray-800 border-gray-700 focus:outline-none focus:border-purple-500">
-
-<div id="chart" class="max-w-3xl mx-auto space-y-2">
-  <p class="text-center text-gray-500">Loading data...</p>
-</div>
-<p id="lastUpdate" class="text-center text-xs text-gray-500 mt-6"></p>
-
-<script>
-// UDAH GANTI: Pake API sendiri biar ga lemot
-const API_URL = '/api/chart'; 
-
-let allData = [];
-
-async function loadChart() {
-  try {
-    const res = await fetch(API_URL + '?_=' + Date.now());
-    if (!res.ok) throw new Error('Gagal fetch data');
-
-    const data = await res.json(); // Langsung JSON dari API
-
-    allData = data.filter(item => item.artistTitle && item.score > 0)
-     .sort((a,b) => b.score - a.score);
-
-    renderChart(allData);
-    document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
-  } catch (error) {
-    console.error("Gagal load data:", error);
-    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data. Cek API / Google Sheet.</p>';
-  }
-}
-
-function renderChart(data) {
-  const chartDiv = document.getElementById('chart');
-  chartDiv.innerHTML = '';
-
-  data.forEach((item, i) => {
-    const rank = i + 1;
-    const rankClass = rank === 1? `rank-1` : rank === 2? `rank-2` : rank === 3? `rank-3` : 'bg-gray-800';
-    const pbaIcon = item.pba > 0? `<span class="up">▲${item.pba}</span>` : item.pba < 0? `<span class="down">▼${Math.abs(item.pba)}</span>` : `-`;
-    const dnuIcon = item.dnu > 0? `<span class="up">+${item.dnu}</span>` : item.dnu < 0? `<span class="down">${item.dnu}</span>` : `-`;
-
-    chartDiv.innerHTML += `
-      <div class="p-3 rounded-lg ${rankClass} shadow-lg transition hover:scale-[1.02] chart-card">
-        <div class="rank-number">#${rank}</div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-base md:text-lg truncate">${item.artistTitle}</p>
-          <p class="text-xs opacity-80">PBA: ${pbaIcon} | DNU: ${dnuIcon} | SCORE: ${item.score.toLocaleString('id-ID')}</p>
-        </div>
-      </div>
-    `;
-  });
-}
-
-document.getElementById('search').addEventListener('input', (e) => {
-  const keyword = e.target.value.toLowerCase();
-  const filtered = allData.filter(item => item.artistTitle.toLowerCase().includes(keyword));
-  renderChart(filtered);
-});
-
-loadChart();
-setInterval(loadChart, 300000); // auto refresh tiap 5 menit
-</script>
-
-</body>
-</html>
+<p class="text-center text
