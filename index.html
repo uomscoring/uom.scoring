@@ -3,50 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Universe of Music TEST</title>
+<title>Universe of Music - Live Chart</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/paparse@5.4.1/paparse.min.js"></script>
 <style>
   body { background: #0a0a0a; color: white; font-family: 'Prompt', sans-serif; }
   h1 { font-family: 'Anton', sans-serif; letter-spacing: 2px; }
-  .rank-1 { background: linear-gradient(90deg, #FF0088, #D800FF); color: black; }
-  .rank-2 { background: linear-gradient(90deg, #15FF00, #A9FF00); color: black; }
-  .rank-3 { background: linear-gradient(90deg, #CD7F32, #A0522D); color: white; }
+.rank-1 { background: linear-gradient(90deg, #FF0088, #D800FF); color: black; font-weight: 700; }
+.rank-2 { background: linear-gradient(90deg, #15FF00, #A9FF00); color: black; font-weight: 700; }
+.rank-3 { background: linear-gradient(90deg, #CD7F32, #A0522D); color: white; font-weight: 700; }
+.up { color: #4ade80; font-weight: 700; }
+.down { color: #f87171; font-weight: 700; }
 </style>
 </head>
 <body class="p-4 md:p-8">
 
-<h1 class="text-4xl md:text-5xl font-bold text-center mb-2">LIVE TOP 100 TEST</h1>
+<h1 class="text-4xl md:text-5xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">LIVE TOP 100</h1>
+<p class="text-center text-gray-400 mb-6">Universe of Music Top Global Chart</p>
 
-<div id="chart" class="max-w-3xl mx-auto space-y-3"></div>
+<input id="search" type="text" placeholder="🔍 Search Artist or Title..." class="w-full max-w-3xl mx-auto block p-3 mb-6 rounded-lg bg-gray-900 border border-gray-700 focus:outline-none focus:border-purple-500">
+
+<div id="chart" class="max-w-3xl mx-auto space-y-3">
+  <p class="text-center text-gray-500">Loading data from Google Sheet...</p>
+</div>
+<p id="lastUpdate" class="text-center text-xs text-gray-500 mt-6"></p>
 
 <script>
-const allData = [
-  {artistTitle: "Taylor Swift - Cruel Summer", pba: 2, dnu: 15, score: 9850000},
-  {artistTitle: "The Weeknd - Blinding Lights", pba: -1, dnu: 8, score: 9720000},
-  {artistTitle: "NewJeans - Super Shy", pba: 5, dnu: 22, score: 9610000},
-  {artistTitle: "Drake - IDGAF", pba: 0, dnu: 5, score: 9500000},
-  {artistTitle: "Billie Eilish - birds of a feather", pba: 3, dnu: 18, score: 9430000},
-];
+// LINK CSV BARU KAMU
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?output=csv';
 
-function renderChart(data) {
-  const chartDiv = document.getElementById('chart');
-  chartDiv.innerHTML = '';
-  data.forEach((item, i) => {
-    const rank = i + 1;
-    const rankClass = rank === 1? `rank-1` : rank === 2? `rank-2` : rank === 3? `rank-3` : 'bg-gray-800';
-    chartDiv.innerHTML += `
-      <div class="flex items-center gap-4 p-4 rounded-lg ${rankClass} shadow-lg">
-        <div class="text-3xl font-extrabold w-[70px] text-center">#${rank}</div>
-        <div class="flex-1">
-          <p class="font-semibold text-lg">${item.artistTitle}</p>
-          <p class="text-xs opacity-80">SCORE: ${item.score.toLocaleString('id-ID')}</p>
-        </div>
-      </div>
-    `;
-  });
+let allData = [];
+
+function getVal(row, keys) {
+  for(let k of keys) {
+    if(row[k]!== undefined && row[k]!== '') return row[k];
+  }
+  return '';
 }
-renderChart(allData);
-</script>
-</body>
-</html>
+
+async function loadChart() {
+  try {
+    const res = await fetch(SHEET_CSV_URL + '&_=' + Date.now());
+    if(!res.ok) throw new Error('Gagal fetch');
+    const csvText = await res.text();
+
+    const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+
+    allData = data.map(row => ({
+      artistTitle: getVal(row, ['Artist - Title', 'Artist-Title']),
+      pba: Number(getVal(row, ['PBA'])) || 0,
+      dnu: Number(getVal(row, ['DNU'])) || 0,
+      score: Number(getVal(row, ['SCORE'])) || 0
+    })).filter(item => item.artistTitle && item.score > 0)
+  .sort((a,b) => b.score - a.score);
+
+    renderChart(all
