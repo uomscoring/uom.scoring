@@ -22,7 +22,7 @@
 <h1 class="text-4xl md:text-5xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">LIVE TOP 100</h1>
 <p class="text-center text-gray-400 mb-6">Universe of Music Top Global Chart</p>
 
-<input id="search" type="text" placeholder="🔍 Search Artist or Title..." class="w-full max-w-3xl mx-auto block p-3 mb-6 rounded-lg bg-gray-900 border border-gray-700 focus:outline-none focus:border-purple-500">
+<input id="search" type="text" placeholder="🔍 Search Artist or Title..." class="w-full max-w-3xl mx-auto block p-3 mb-6 rounded-lg bg-gray-900 border-gray-700">
 
 <div id="chart" class="max-w-3xl mx-auto space-y-3">
   <p class="text-center text-gray-500">Loading data from Google Sheet...</p>
@@ -30,8 +30,8 @@
 <p id="lastUpdate" class="text-center text-xs text-gray-500 mt-6"></p>
 
 <script>
-// LINK CSV BARU KAMU
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?output=csv';
+// UDAH AKU TAMBAHIN &gid=1352500872
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
 
 let allData = [];
 
@@ -45,17 +45,32 @@ function getVal(row, keys) {
 async function loadChart() {
   try {
     const res = await fetch(SHEET_CSV_URL + '&_=' + Date.now());
-    if(!res.ok) throw new Error('Gagal fetch');
     const csvText = await res.text();
-
     const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 
     allData = data.map(row => ({
-      artistTitle: getVal(row, ['Artist - Title', 'Artist-Title']),
+      artistTitle: getVal(row, ['Artist - Title']),
       pba: Number(getVal(row, ['PBA'])) || 0,
       dnu: Number(getVal(row, ['DNU'])) || 0,
       score: Number(getVal(row, ['SCORE'])) || 0
     })).filter(item => item.artistTitle && item.score > 0)
-  .sort((a,b) => b.score - a.score);
+ .sort((a,b) => b.score - a.score);
 
-    renderChart(all
+    renderChart(allData);
+    document.getElementById('lastUpdate').innerText = 'Last update: ' + new Date().toLocaleTimeString('id-ID');
+  } catch (error) {
+    document.getElementById('chart').innerHTML = '<p class="text-center text-red-500">Gagal memuat data</p>';
+  }
+}
+
+function renderChart(data) {
+  const chartDiv = document.getElementById('chart');
+  chartDiv.innerHTML = '';
+  data.forEach((item, i) => {
+    const rank = i + 1;
+    const rankClass = rank === 1? `rank-1` : rank === 2? `rank-2` : rank === 3? `rank-3` : 'bg-gray-900 border border-gray-800';
+    const pbaIcon = item.pba > 0? `<span class="up">▲${item.pba}</span>` : item.pba < 0? `<span class="down">▼${Math.abs(item.pba)}</span>` : `-`;
+    const dnuIcon = item.dnu > 0? `<span class="up">+${item.dnu}</span>` : item.dnu < 0? `<span class="down">${item.dnu}</span>` : `-`;
+    chartDiv.innerHTML += `
+      <div class="flex items-center gap-4 p-4 rounded-xl ${rankClass} shadow-lg">
+        <div class="text-3xl font-extrabold w-[70px] text-center">#${rank}</div>
