@@ -1,58 +1,71 @@
-<script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UOM SCORING - LIVE TOP 100</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: white; padding: 20px; }
+        h1 { text-align: center; color: #38bdf8; }
+        #status { text-align: center; margin: 20px; }
+        canvas { background: #1e293b; border-radius: 10px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🏆 LIVE TOP 100 UOM SCORING</h1>
+    <div id="status">Loading data...</div>
+    <canvas id="myChart"></canvas>
 
-    async function fetchData() {
-        document.getElementById('status').textContent = 'Mengambil data dari Google Sheet...';
+    <script>
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2ZX1gsf_L1_ioUZLmBVEwCIolt92WicQKJkoM0nn3p7A2GrBfoiQMZVOHvhXJ4ISBkK_pWzmvntyx/pub?gid=1352500872&single=true&output=csv';
 
-        try {
-            // LANGSUNG FETCH CSV, GA PAKE PROXY LAGI
-            const response = await fetch(SHEET_URL);
-            if (!response.ok) throw new Error('Gagal fetch: ' + response.status);
+        async function fetchData() {
+            try {
+                const response = await fetch(SHEET_URL);
+                const csvText = await response.text();
 
-            const csvText = await response.text();
-            const rows = csvText.split('\n').map(row => row.split(','));
+                const rows = csvText.split('\n');
+                const headers = rows[0].split(',').map(h => h.trim());
 
-            const headers = rows[0].map(h => h.trim());
-            const data = rows.slice(1).map(row => {
-                let obj = {};
-                headers.forEach((header, i) => {
-                    obj[header] = row[i]? row[i].trim() : '';
+                const data = rows.slice(1).map(row => {
+                    const values = row.split(',');
+                    let obj = {};
+                    headers.forEach((header, i) => {
+                        obj[header] = values[i]? values[i].trim() : '';
+                    });
+                    return obj;
+                }).filter(row => row.NAMA && row.SKOR);
+
+                document.getElementById('status').textContent = `Data berhasil: ${data.length} tim ditemukan`;
+
+                // Sort & ambil Top 100
+                data.sort((a, b) => parseFloat(b.SKOR) - parseFloat(a.SKOR));
+                const top100 = data.slice(0, 100);
+
+                new Chart(document.getElementById('myChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: top100.map(r => r.NAMA),
+                        datasets: [{
+                            label: 'SKOR',
+                            data: top100.map(r => parseFloat(r.SKOR)),
+                            backgroundColor: '#38bdf8'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
                 });
-                return obj;
-            }).filter(row => row['NAMA']); // filter baris kosong
 
-            document.getElementById('status').textContent = `Data berhasil dimuat: ${data.length} tim`;
-            renderChart(data);
-
-        } catch (error) {
-            document.getElementById('status').textContent = 'GAGAL: ' + error.message;
-            console.error(error);
-        }
-    }
-
-    function renderChart(data) {
-        // sort by SKOR tertinggi
-        data.sort((a, b) => parseFloat(b.SKOR) - parseFloat(a.SKOR));
-        const top100 = data.slice(0, 100);
-
-        const ctx = document.getElementById('myChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: top100.map(r => r.NAMA),
-                datasets: [{
-                    label: 'SKOR',
-                    data: top100.map(r => parseFloat(r.SKOR)),
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)'
-                }]
-            },
-            options: {
-                indexAxis: 'y', // biar horizontal
-                responsive: true,
-                plugins: { legend: { display: false } }
+            } catch (error) {
+                document.getElementById('status').textContent = 'ERROR: ' + error.message;
             }
-        });
-    }
-
-    fetchData();
-</script>
+        }
+        fetchData();
+    </script>
+</body>
+</html>
